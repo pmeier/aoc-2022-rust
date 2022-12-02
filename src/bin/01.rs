@@ -1,10 +1,17 @@
 fn top_k_total_calories(input: &str, k: usize) -> u32 {
-    let mut total_calories = input.split("\n\n").into_iter().map(|input_per_elf| {
-        input_per_elf
-            .lines()
-            .map(|line| line.parse::<u32>().expect(&format!("Can't parse '{line}' into an u32!")))
-            .sum::<u32>()
-    }).collect::<Vec<_>>();
+    let mut total_calories = input
+        .split("\n\n")
+        .into_iter()
+        .map(|input_per_elf| {
+            input_per_elf
+                .lines()
+                .map(|line| {
+                    line.parse::<u32>()
+                        .expect(&format!("Can't parse '{line}' into an u32!"))
+                })
+                .sum::<u32>()
+        })
+        .collect::<Vec<_>>();
     total_calories.sort();
     total_calories.iter().rev().take(k).sum()
 }
