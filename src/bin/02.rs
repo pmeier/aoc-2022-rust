@@ -22,40 +22,48 @@ enum StrategyParseFailure {
 #[derive(Debug)]
 struct StrategyParseError(StrategyParseFailure);
 
-enum First {
+enum FirstColumn {
     A,
     B,
     C,
 }
 
-impl FromStr for First {
+impl FromStr for FirstColumn {
     type Err = StrategyParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use FirstColumn::{A, B, C};
+
         match s {
-            "A" => Ok(First::A),
-            "B" => Ok(First::B),
-            "C" => Ok(First::C),
-            _ => Err(StrategyParseError(StrategyParseFailure::FirstColumn(s.to_owned()))),
+            "A" => Ok(A),
+            "B" => Ok(B),
+            "C" => Ok(C),
+            _ => Err(StrategyParseError(StrategyParseFailure::FirstColumn(
+                s.to_owned(),
+            ))),
         }
     }
 }
 
-enum Second {
+enum SecondColumn {
     X,
     Y,
     Z,
 }
 
-impl FromStr for Second {
+impl FromStr for SecondColumn {
     type Err = StrategyParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use SecondColumn::{X, Y, Z};
+
         match s {
-            "X" => Ok(Second::X),
-            "Y" => Ok(Second::Y),
-            "Z" => Ok(Second::Z),
-            _ => Err(StrategyParseError(StrategyParseFailure::SecondColumn(s.to_owned()))),
+            "X" => Ok(X),
+            "Y" => Ok(Y),
+            "Z" => Ok(Z),
+            _ => Err(StrategyParseError(StrategyParseFailure::SecondColumn(
+                s.to_owned(),
+            ))),
         }
     }
 }
@@ -66,16 +74,19 @@ struct Score {
 
 impl Score {
     fn from_player_and_outcome(player: &HandShape, outcome: &Outcome) -> Score {
+        use HandShape::{Rock, Paper, Scissors};
+        use Outcome::{Win, Defeat, Draw};
+
         let hand_shape_score = match player {
-            HandShape::Rock => 1,
-            HandShape::Paper => 2,
-            HandShape::Scissors => 3,
+            Rock => 1,
+            Paper => 2,
+            Scissors => 3,
         };
 
         let outcome_score = match outcome {
-            Outcome::Win => 6,
-            Outcome::Defeat => 0,
-            Outcome::Draw => 3,
+            Win => 6,
+            Defeat => 0,
+            Draw => 3,
         };
 
         Score {
@@ -83,101 +94,93 @@ impl Score {
         }
     }
 
-    fn parse_strategy(s: &str) -> Result<(First, Second), StrategyParseError> {
+    fn parse_strategy(s: &str) -> Result<(FirstColumn, SecondColumn), StrategyParseError> {
         let columns: Vec<&str> = s.split_whitespace().collect();
         if columns.len() != 2 {
-            return Err(StrategyParseError(StrategyParseFailure::NumColumns(columns.len())));
+            return Err(StrategyParseError(StrategyParseFailure::NumColumns(
+                columns.len(),
+            )));
         }
 
-        Ok((columns[0].parse::<First>()?, columns[1].parse::<Second>()?))
+        Ok((columns[0].parse::<FirstColumn>()?, columns[1].parse::<SecondColumn>()?))
     }
 
     fn from_encrypted_strategy(s: &str) -> Result<Score, StrategyParseError> {
+        use HandShape::{Rock, Paper, Scissors};
+        use Outcome::{Win, Defeat, Draw};
+        use FirstColumn::{A, B, C};
+        use SecondColumn::{X, Y, Z};
+
         let (first, second) = Score::parse_strategy(s)?;
 
         let opponent = match first {
-            First::A => HandShape::Rock,
-            First::B => HandShape::Paper,
-            First::C => HandShape::Scissors,
+            A => Rock,
+            B => Paper,
+            C => Scissors,
         };
 
         let player = match second {
-            Second::X => HandShape::Rock,
-            Second::Y => HandShape::Paper,
-            Second::Z => HandShape::Scissors,
+            X => Rock,
+            Y => Paper,
+            Z => Scissors,
         };
 
-        let outcome = match player {
-            HandShape::Rock => match opponent {
-                HandShape::Rock => Outcome::Draw,
-                HandShape::Paper => Outcome::Defeat,
-                HandShape::Scissors => Outcome::Win,
-            },
-            HandShape::Paper => match opponent {
-                HandShape::Rock => Outcome::Win,
-                HandShape::Paper => Outcome::Draw,
-                HandShape::Scissors => Outcome::Defeat,
-            },
-            HandShape::Scissors => match opponent {
-                HandShape::Rock => Outcome::Defeat,
-                HandShape::Paper => Outcome::Win,
-                HandShape::Scissors => Outcome::Draw,
-            },
+        let outcome = match (&player, &opponent) {
+            (Rock, Scissors) | (Paper, Rock) | (Scissors , Paper) => Win,
+            (Rock, Paper) | (Paper, Scissors) | (Scissors , Rock) => Defeat,
+            (Rock, Rock) | (Paper, Paper) | (Scissors , Scissors) => Draw,
         };
 
         Ok(Score::from_player_and_outcome(&player, &outcome))
     }
 
     fn from_decrypted_strategy(s: &str) -> Result<Score, StrategyParseError> {
+        use HandShape::{Rock, Paper, Scissors};
+        use Outcome::{Win, Defeat, Draw};
+        use FirstColumn::{A, B, C};
+        use SecondColumn::{X, Y, Z};
+
         let (first, second) = Score::parse_strategy(s)?;
 
         let opponent = match first {
-            First::A => HandShape::Rock,
-            First::B => HandShape::Paper,
-            First::C => HandShape::Scissors,
+            A => Rock,
+            B => Paper,
+            C => Scissors,
         };
 
         let outcome = match second {
-            Second::X => Outcome::Defeat,
-            Second::Y => Outcome::Draw,
-            Second::Z => Outcome::Win,
+            X => Defeat,
+            Y => Draw,
+            Z => Win,
         };
 
-        let player = match outcome {
-            Outcome::Defeat => match opponent {
-                HandShape::Rock => HandShape::Scissors,
-                HandShape::Paper => HandShape::Rock,
-                HandShape::Scissors => HandShape::Paper,
-            },
-            Outcome::Draw => match opponent {
-                HandShape::Rock => HandShape::Rock,
-                HandShape::Paper => HandShape::Paper,
-                HandShape::Scissors => HandShape::Scissors,
-            },
-            Outcome::Win => match opponent {
-                HandShape::Rock => HandShape::Paper,
-                HandShape::Paper => HandShape::Scissors,
-                HandShape::Scissors => HandShape::Rock,
-            },
+        let player = match (&outcome, &opponent) {
+            (Win, Scissors) | (Defeat, Paper) | (Draw, Rock) => Rock,
+            (Win, Rock) | (Defeat, Scissors) | (Draw, Paper) => Paper,
+            (Win, Paper) | (Defeat, Rock) | (Draw, Scissors) => Scissors,
         };
 
         Ok(Score::from_player_and_outcome(&player, &outcome))
     }
 }
 
-fn solve<P>(input: &str, parse: P) -> Option<u32>
+fn solve<P>(input: &str, parse: P) -> Result<u32, StrategyParseError>
 where
     P: Fn(&str) -> Result<Score, StrategyParseError>,
 {
-    Some(input.lines().map(|line| parse(line).unwrap().value).sum())
+    let mut total = 0;
+    for line in input.lines() {
+        total += parse(line)?.value;
+    }
+    Ok(total)
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
-    solve(input, Score::from_encrypted_strategy)
+    Some(solve(input, Score::from_encrypted_strategy).unwrap())
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    solve(input, Score::from_decrypted_strategy)
+    Some(solve(input, Score::from_decrypted_strategy).unwrap())
 }
 
 fn main() {
