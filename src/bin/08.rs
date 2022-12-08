@@ -65,11 +65,10 @@ pub fn part_two(input: &str) -> Option<u32> {
         I: Iterator<Item = &'a usize>,
     {
         let mut num = 0;
-        for other_height in other_heights
-        {
+        for other_height in other_heights {
             num += 1;
             if other_height >= height {
-                break
+                break;
             }
         }
         num

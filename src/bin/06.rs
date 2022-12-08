@@ -1,16 +1,15 @@
 use std::collections::HashSet;
 
 fn solve(input: &str, marker_length: usize) -> Option<u32> {
-    let chars : Vec<_> = input.chars().collect();
+    let chars: Vec<_> = input.chars().collect();
     for (idx, window) in chars.windows(marker_length).enumerate() {
         let set: HashSet<&char> = HashSet::from_iter(window);
         if set.len() == marker_length {
-            return Some((idx+ marker_length) as u32);
+            return Some((idx + marker_length) as u32);
         }
     }
     None
 }
-
 
 pub fn part_one(input: &str) -> Option<u32> {
     solve(input, 4)
