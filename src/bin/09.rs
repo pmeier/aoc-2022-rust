@@ -89,7 +89,6 @@ impl Rope {
     }
 }
 
-
 fn solve(input: &str, num_knots: usize) -> u32 {
     let mut rope = Rope::new(num_knots);
     let mut visited_by_tail: HashSet<Position> = HashSet::new();
