@@ -81,15 +81,13 @@ struct Item {
 }
 
 impl Item {
-    fn inspect(&mut self, operation: &Operation, relief: &bool) {
+    fn inspect(&mut self, operation: &Operation, relief: &bool, max_worry_level: &usize) {
         let mut new_worry_level = operation.perform(self.worry_level);
 
         if *relief {
             new_worry_level /= 3;
         }
-
-        const MAX_WORRY_LEVEL: usize = 2 * 3 * 5 * 7 * 11 * 13 * 17 * 19;
-        new_worry_level %= MAX_WORRY_LEVEL;
+        new_worry_level %= max_worry_level;
 
         self.worry_level = new_worry_level;
     }
@@ -112,15 +110,15 @@ impl Monkey {
             num_inspections: 0,
         }
     }
-    fn inspect_and_throw(&mut self, relief: bool) -> (Item, usize) {
+    fn inspect_and_throw(&mut self, relief: &bool, max_worry_level: &usize) -> (usize, Item) {
         let mut item = self.items.pop_front().unwrap();
 
-        item.inspect(&self.operation, &relief);
+        item.inspect(&self.operation, relief, max_worry_level);
         self.num_inspections += 1;
 
-        let other_idx = self.test.perform(item.worry_level);
+        let idx = self.test.perform(item.worry_level);
 
-        (item, other_idx)
+        (idx, item)
     }
 }
 
@@ -153,12 +151,22 @@ fn parse(input: &str) -> Vec<Monkey> {
 
 fn solve(input: &str, rounds: usize, relief: bool) -> u64 {
     let mut monkeys = parse(input);
+    let max_worry_level = monkeys
+        .iter()
+        .map(|monkey| monkey.test.divisible_by)
+        .product();
 
     for _ in 0..rounds {
-        for monkey in &mut monkeys {
-            while !monkey.items.is_empty() {
-                let (item, idx) = monkey.inspect_and_throw(relief);
-                // FIXME E0499
+        for idx in 0..monkeys.len() {
+            let indexed_items = {
+                let monkey = &mut monkeys[idx];
+                let mut indexed_items = Vec::new();
+                while !monkey.items.is_empty() {
+                    indexed_items.push(monkey.inspect_and_throw(&relief, &max_worry_level))
+                }
+                indexed_items
+            };
+            for (idx, item) in indexed_items {
                 monkeys[idx].items.push_back(item);
             }
         }
@@ -169,7 +177,7 @@ fn solve(input: &str, rounds: usize, relief: bool) -> u64 {
         .map(|monkey| monkey.num_inspections as u64)
         .collect::<Vec<_>>();
     num_inspections.sort();
-    num_inspections.iter().take(2).product::<u64>()
+    num_inspections.iter().rev().take(2).product::<u64>()
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
