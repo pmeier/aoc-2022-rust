@@ -1,6 +1,6 @@
 extern crate pathfinding;
 
-use std::{ops::Deref, collections::VecDeque};
+use std::ops::Deref;
 
 use pathfinding::prelude::astar;
 
@@ -15,13 +15,7 @@ impl Node {
         Node {
             position,
             elevation: match c {
-                'S' => {
-                    if inline_start {
-                        1
-                    } else {
-                        0
-                    }
-                }
+                'S' => usize::from(inline_start),
                 'E' => 27,
                 ascii_lowercase => ascii_lowercase as usize - 'a' as usize + 1,
             },
@@ -77,7 +71,7 @@ impl Grid {
         }
     }
 
-    fn find_nodes<'a>(&'a self, elevation: usize) -> Vec<&'a Node> {
+    fn find_nodes(&self, elevation: usize) -> Vec<&Node> {
         self.iter()
             .flatten()
             .filter(|node| node.elevation == elevation)
@@ -94,22 +88,20 @@ impl Deref for Grid {
 }
 
 fn solve(grid: &Grid, start: &Node, goal: &Node) -> Option<u32> {
-    match astar(
+    astar(
         start,
-        |node| node.successors(&grid),
+        |node| node.successors(grid),
         |node| node.distance(goal),
         |node| node == goal,
-    ) {
-        None => None,
-        Some((_, num_steps)) => Some(num_steps as u32),
-    }
+    )
+    .map(|(_, num_steps)| num_steps as u32)
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
     let grid = Grid::from_str(input, false);
 
-    let start: &Node = grid.find_nodes(0).iter().next().unwrap();
-    let goal: &Node = grid.find_nodes(27).iter().next().unwrap();
+    let start: &Node = grid.find_nodes(0).first().unwrap();
+    let goal: &Node = grid.find_nodes(27).first().unwrap();
 
     Some(solve(&grid, start, goal).unwrap())
 }
@@ -118,7 +110,7 @@ pub fn part_two(input: &str) -> Option<u32> {
     let grid = Grid::from_str(input, true);
 
     let mut starts: Vec<&Node> = grid.find_nodes(1);
-    let goal: &Node = grid.find_nodes(27).iter().next().unwrap();
+    let goal: &Node = grid.find_nodes(27).first().unwrap();
 
     starts.sort_by_key(|node| node.distance(goal));
 
